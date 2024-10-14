@@ -1,3 +1,6 @@
+using Contracts;
+using MassTransit;
+using MassTransit.Transports;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ProducerWebApi.Controllers
@@ -12,15 +15,22 @@ namespace ProducerWebApi.Controllers
         };
 
         private readonly ILogger<WeatherForecastController> _logger;
+        private readonly IPublishEndpoint _publishEndpoint;
 
-        public WeatherForecastController(ILogger<WeatherForecastController> logger)
+        public WeatherForecastController(ILogger<WeatherForecastController> logger, IPublishEndpoint publishEndpoint)
         {
             _logger = logger;
+            _publishEndpoint = publishEndpoint;
         }
 
         [HttpGet(Name = "GetWeatherForecast")]
-        public IEnumerable<WeatherForecast> Get()
+        public async Task<IEnumerable<WeatherForecast>> Get()
         {
+            await _publishEndpoint.Publish<TestMessage>(new
+            {
+                Text = "Hello, World!"
+            });
+
             return Enumerable.Range(1, 5).Select(index => new WeatherForecast
             {
                 Date = DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
