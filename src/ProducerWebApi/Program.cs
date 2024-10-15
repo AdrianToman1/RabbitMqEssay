@@ -1,5 +1,5 @@
-using Contracts;
 using MassTransit;
+using Microsoft.Extensions.Options;
 using ProducerWebApi;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -11,13 +11,18 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.Configure<MessageBrokerSettings>(builder.Configuration.GetSection("MessageBroker"));
+
 builder.Services.AddMassTransit(x =>
 {
     x.UsingRabbitMq((context, cfg) =>
     {
-        cfg.Host("localhost", "/", h => {
-            h.Username("guest");
-            h.Password("guest");
+        var settings = context.GetRequiredService<IOptions<MessageBrokerSettings>>().Value;
+
+        cfg.Host(settings.Host, "/", h =>
+        {
+            h.Username(settings.Username);
+            h.Password(settings.Password);
         });
 
         cfg.ConfigureEndpoints(context);

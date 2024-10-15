@@ -1,23 +1,33 @@
-﻿using Contracts;
+﻿using ConsumerConsoleApp;
+using Contracts;
 using MassTransit;
+using Microsoft.Extensions.Configuration;
 
 Console.WriteLine("Hello, World!");
+
+var builder = new ConfigurationBuilder();
+builder.SetBasePath(Directory.GetCurrentDirectory())
+    .AddJsonFile("appsettings.json", false, true);
+
+IConfiguration configuration = builder.Build();
+
+var serverConnection = new MessageBrokerSettings();
+configuration.GetSection("MessageBroker").Bind(serverConnection);
+
 IBusControl busControl = null;
 try
 {
     busControl = Bus.Factory.CreateUsingRabbitMq(cfg =>
     {
-        cfg.Host("localhost", "/", h =>
+        cfg.Host(serverConnection.Host, "/", h =>
         {
-            h.Username("guest");
-            h.Password("guest");
+            h.Username(serverConnection.Username);
+            h.Password(serverConnection.Password);
         });
 
-        cfg.ReceiveEndpoint("my_queue", e =>
-        {
-            e.Consumer<MyConsumer>();
-        });
+        cfg.ReceiveEndpoint("my_queue", e => { e.Consumer<MyConsumer>(); });
     });
+
 
     busControl.Start(); // This is non-blocking
     Console.WriteLine("Press any key to exit");
@@ -42,7 +52,3 @@ public class MyConsumer : IConsumer<TestMessage>
         Console.WriteLine($"Received: {context.Message.Text}");
     }
 }
-
-
-
-
